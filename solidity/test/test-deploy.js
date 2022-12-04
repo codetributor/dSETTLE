@@ -5,7 +5,7 @@ const {
 } = require("hardhat/internal/hardhat-network/stack-traces/message-trace");
 const { getSignatureForFn } = require("typechain");
 
-describe("wllo", () => {
+describe("test wllo", () => {
   let Wllo, wllo, TxFactory, txFactory, Tx, tx, wlloContractAddress, signer;
 
   beforeEach(async () => {
