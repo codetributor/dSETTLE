@@ -1,214 +1,141 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import "./Wllo.sol";
+import "./Dsettle.sol";
 
 contract Tx {
     uint256 multipleOfPrice = 2;
-    address owner;
     uint sellerCollateral;
     uint buyerCollateral;
     uint tipForSeller;
     uint tipForBuyer;
-
-    struct Transaction {
-        string item;
-        uint256 price;
-        string recipientPhysicalAddress;
-        string sellerPhysicalAddress;
-        bool dispute;
-        address recipient;
-        address seller;
-        bool sellerSettled;
-        bool recipientSettled;
-        bool pending;
-        bool finalSettlement;
-    }
-
-    Transaction public transaction;
-
-    address public WlloContractAddress;
+    string item;
+    uint256 price;
+    string buyerPhysicalAddress;
+    string sellerPhysicalAddress;
+    bool dispute;
+    address buyer;
+    address seller;
+    bool sellerSettled;
+    bool buyerSettled;
+    bool pending;
+    bool finalSettlement;
+    address public DsettleContractAddress;
 
     constructor(
         string memory _item,
         uint256 _price,
         string memory _sellerPhysicalAddress,
-        address _WlloContractAddress
+        address _DsettleContractAddress
     ) payable {
         require(msg.value >= _price, "You did not put enough collateral funds");
-        Transaction memory _transaction = Transaction(
-            _item,
-            _price,
-            _sellerPhysicalAddress,
-            "null",
-            false,
-            address(0),
-            msg.sender,
-            false,
-            false,
-            false,
-            false
-        );
-        transaction = _transaction;
-        owner = msg.sender;
-        transaction.seller = msg.sender;
-        WlloContractAddress = _WlloContractAddress;
-        Wllo(WlloContractAddress).addSellerTx(
-            address(this),
-            transaction.seller
-        );
-        sellerCollateral += transaction.price;
+
+        item = _item;
+        price = _price;
+        sellerPhysicalAddress = _sellerPhysicalAddress;
+        buyer = address(0);
+        seller = msg.sender;
+        DsettleContractAddress = _DsettleContractAddress;
+        Dsettle(DsettleContractAddress).addSellerTx(address(this), seller);
+        sellerCollateral += price;
     }
 
-    function purchase(string memory _recipientPhysicalAddress) public payable {
+    function purchase(string memory _buyerPhysicalAddress) public payable {
         require(
-            msg.value == transaction.price * multipleOfPrice,
-            "Not enough memory to purchase"
+            msg.value == price * multipleOfPrice,
+            "Not enough memony to purchase"
         );
-        transaction.recipientPhysicalAddress = _recipientPhysicalAddress;
-        transaction.recipient = msg.sender;
-        transaction.pending = true;
-        Wllo(WlloContractAddress).addBuyerTx(
-            address(this),
-            transaction.recipient
-        );
-        buyerCollateral += transaction.price * multipleOfPrice;
+        buyerPhysicalAddress = _buyerPhysicalAddress;
+        buyer = msg.sender;
+        pending = true;
+        Dsettle(DsettleContractAddress).addBuyerTx(address(this), buyer);
+        buyerCollateral += price * multipleOfPrice;
     }
 
-    function dispute() public {
-        require(
-            msg.sender == transaction.recipient,
-            "You are not authorized to dispute"
-        );
-        transaction.dispute = true;
+    function setDispute() public {
+        require(msg.sender == buyer, "You are not authorized to dispute");
+        dispute = true;
     }
 
     function tipSeller() public payable {
-        require(
-            msg.sender == transaction.recipient,
-            "You are not authorized to to tip"
-        );
+        require(msg.sender == buyer, "You are not authorized to to tip");
         tipForSeller += msg.value;
     }
 
     function tipBuyer() public payable {
-        require(
-            msg.sender == transaction.seller,
-            "You are not authorized to tip"
-        );
+        require(msg.sender == seller, "You are not authorized to tip");
         tipForBuyer += msg.value;
     }
 
-    function payOutRecipient(address _msgSender) public {
-        require(
-            _msgSender == transaction.recipient,
-            "You are not authorized to settle"
-        );
-        if (transaction.dispute == false) {
-            Wllo(WlloContractAddress).removeTx(
+    function payOutbuyer(address _msgSender) public {
+        require(_msgSender == buyer, "You are not authorized to settle");
+        if (dispute == false) {
+            Dsettle(DsettleContractAddress).removeTx(
                 address(this),
-                transaction.seller,
-                transaction.recipient
+                seller,
+                buyer
             );
-            (bool success0, ) = transaction.seller.call{
-                value: transaction.price * multipleOfPrice
-            }("");
-            (bool success1, ) = transaction.recipient.call{
-                value: transaction.price
-            }("");
+            (bool success0, ) = seller.call{value: price * multipleOfPrice}("");
+            (bool success1, ) = buyer.call{value: price}("");
             if (!success0) {
                 revert();
             }
             if (!success1) {
                 revert();
             }
-            transaction.finalSettlement = true;
+            finalSettlement = true;
         } else {
-            require(transaction.sellerSettled == true, "Seller did not settle");
-            Wllo(WlloContractAddress).removeTx(
+            require(sellerSettled == true, "Seller did not settle");
+            Dsettle(DsettleContractAddress).removeTx(
                 address(this),
-                transaction.seller,
-                transaction.recipient
+                seller,
+                buyer
             );
-            (bool success0, ) = owner.call{
-                value: transaction.price * multipleOfPrice
-            }("");
-            (bool success1, ) = transaction.recipient.call{
-                value: transaction.price
-            }("");
+            (bool success0, ) = seller.call{value: price * multipleOfPrice}("");
+            (bool success1, ) = buyer.call{value: price}("");
             if (!success0) {
                 revert();
             }
             if (!success1) {
                 revert();
             }
-            transaction.finalSettlement = true;
+            finalSettlement = true;
         }
     }
 
-    function recipientSettle() public {
-        require(
-            msg.sender == transaction.recipient,
-            "You are not authorized to settle"
-        );
-        transaction.recipientSettled = true;
-        payOutRecipient(msg.sender);
+    function buyerSettle() public {
+        require(msg.sender == buyer, "You are not authorized to settle");
+        buyerSettled = true;
+        payOutbuyer(msg.sender);
     }
 
     function payOutSeller(address _msgSender) public {
-        require(
-            transaction.dispute == true && transaction.recipientSettled == true
-        );
-        require(
-            _msgSender == transaction.seller,
-            "You are not authorized to settle"
-        );
+        require(dispute == true && buyerSettled == true);
+        require(_msgSender == seller, "You are not authorized to settle");
 
-        Wllo(WlloContractAddress).removeTx(
-            address(this),
-            transaction.seller,
-            transaction.recipient
-        );
-        (bool success0, ) = transaction.seller.call{
-            value: transaction.price * multipleOfPrice
-        }("");
-        (bool success1, ) = transaction.recipient.call{
-            value: transaction.price
-        }("");
+        Dsettle(DsettleContractAddress).removeTx(address(this), seller, buyer);
+        (bool success0, ) = seller.call{value: price * multipleOfPrice}("");
+        (bool success1, ) = buyer.call{value: price}("");
         if (!success0) {
             revert();
         }
         if (!success1) {
             revert();
         }
-        transaction.finalSettlement = true;
+        finalSettlement = true;
     }
 
     function sellerSettle() public {
-        require(
-            msg.sender == transaction.seller,
-            "You are not autherized to settle"
-        );
-        transaction.sellerSettled = true;
+        require(msg.sender == seller, "You are not autherized to settle");
+        sellerSettled = true;
         payOutSeller(msg.sender);
     }
 
     function sellerRefund() public {
-        require(
-            msg.sender == transaction.seller,
-            "You are not autherized to refund"
-        );
-        Wllo(WlloContractAddress).removeTx(
-            address(this),
-            transaction.seller,
-            transaction.recipient
-        );
-        (bool success0, ) = transaction.seller.call{value: transaction.price}(
-            ""
-        );
-        (bool success1, ) = transaction.recipient.call{
-            value: transaction.price * multipleOfPrice
-        }("");
+        require(msg.sender == seller, "You are not autherized to refund");
+        Dsettle(DsettleContractAddress).removeTx(address(this), seller, buyer);
+        (bool success0, ) = seller.call{value: price}("");
+        (bool success1, ) = buyer.call{value: price * multipleOfPrice}("");
         if (!success0) {
             revert();
         }
@@ -221,19 +148,23 @@ contract Tx {
         return sellerCollateral;
     }
 
-    function getRecipientCollateral() public view returns (uint256) {
+    function getbuyerCollateral() public view returns (uint256) {
         return buyerCollateral;
     }
 
     function getPrice() public view returns (uint256) {
-        return transaction.price;
+        return price;
     }
 
     function getItem() public view returns (string memory) {
-        return transaction.item;
+        return item;
     }
 
     function getTotalContractBalance() public view returns (uint256) {
         return address(this).balance;
+    }
+
+    function getPending() public view returns (bool) {
+        return pending;
     }
 }

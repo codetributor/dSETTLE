@@ -9,7 +9,7 @@ function Logo() {
 
   return (
     <div className="cursor-pointer" onClick={backToHome}>
-      <h1 className="text-4xl text-blue-400 font-extrabold">wllo</h1>
+      <img src="/logo.png" height={50} width={200} />
     </div>
   );
 }

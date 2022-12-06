@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-contract Wllo {
+contract Dsettle {
     mapping(address => address[]) public sellersTx;
     mapping(address => address[]) public buyersTx;
     address[] public sellerTxArray;

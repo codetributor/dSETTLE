@@ -7,15 +7,15 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  const Wllo = await ethers.getContractFactory("Wllo");
-  const wllo = await Wllo.deploy();
-  await wllo.deployed();
+    const Dsettle = await ethers.getContractFactory("Dsettle");
+    const dSettle = await Dsettle.deploy();
+    await dSettle.deployed();
 
-  console.log(`Wllo contract deloyed at ${wllo.address}`);
+    console.log(`dSETTLE contract deloyed at ${dSettle.address}`);
 }
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+    console.error(error);
+    process.exitCode = 1;
 });
