@@ -12,6 +12,12 @@ async function main() {
     await dSettle.deployed();
 
     console.log(`dSETTLE contract deloyed at ${dSettle.address}`);
+
+    const TxFactory = await ethers.getContractFactory("TxFactory");
+    const txFactory = await TxFactory.deploy();
+    await txFactory.deployed();
+
+    console.log(`txFactory contract deloyed at ${txFactory.address}`);
 }
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.

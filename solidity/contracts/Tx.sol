@@ -1,18 +1,26 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import "./Dsettle.sol";
+import "./TxFactory.sol";
 
 contract Tx {
-    uint256 multipleOfPrice = 2;
-    uint sellerCollateral;
-    uint buyerCollateral;
-    uint tipForSeller;
-    uint tipForBuyer;
+    address public TxFactoryContractAddress;
+
     string item;
     uint256 price;
-    string buyerPhysicalAddress;
     string sellerPhysicalAddress;
+    uint256 id;
+
+    string buyerPhysicalAddress;
+
+    uint256 multipleOfPrice = 2;
+
+    uint sellerCollateral;
+    uint buyerCollateral;
+
+    uint tipForSeller;
+    uint tipForBuyer;
+
     bool dispute;
     address buyer;
     address seller;
@@ -20,27 +28,32 @@ contract Tx {
     bool buyerSettled;
     bool pending;
     bool finalSettlement;
-    address public DsettleContractAddress;
 
     constructor(
         string memory _item,
         uint256 _price,
         string memory _sellerPhysicalAddress,
-        address _DsettleContractAddress
+        uint256 _id,
+        address _TxFactoryContractAddress
     ) payable {
         require(msg.value >= _price, "You did not put enough collateral funds");
 
         item = _item;
         price = _price;
         sellerPhysicalAddress = _sellerPhysicalAddress;
+        id = _id;
+
+        TxFactoryContractAddress = _TxFactoryContractAddress;
+
         buyer = address(0);
-        seller = msg.sender;
-        DsettleContractAddress = _DsettleContractAddress;
-        Dsettle(DsettleContractAddress).addSellerTx(address(this), seller);
+        seller = Tx.origin;
+
         sellerCollateral += price;
+
+        TxFactory(TxFactoryContractAddress).setTransaction(Tx.origin);
     }
 
-    function purchase(string memory _buyerPhysicalAddress) public payable {
+    function purchase(string memory _buyerPhysicalAddress, address _TxContractAddress) public payable {
         require(
             msg.value == price * multipleOfPrice,
             "Not enough memony to purchase"
@@ -48,9 +61,11 @@ contract Tx {
         buyerPhysicalAddress = _buyerPhysicalAddress;
         buyer = msg.sender;
         pending = true;
-        Dsettle(DsettleContractAddress).addBuyerTx(address(this), buyer);
-        buyerCollateral += price * multipleOfPrice;
-    }
+        sellerCollateral += msg.value * multipleOfPrice;
+
+        }
+ 
+ }    
 
     function setDispute() public {
         require(msg.sender == buyer, "You are not authorized to dispute");
@@ -70,29 +85,31 @@ contract Tx {
     function payOutbuyer(address _msgSender) public {
         require(_msgSender == buyer, "You are not authorized to settle");
         if (dispute == false) {
-            Dsettle(DsettleContractAddress).removeTx(
-                address(this),
-                seller,
-                buyer
+            TxFactory(TxFactoryContractAddress).removeTx(
+                address(this)
             );
-            (bool success0, ) = seller.call{value: price * multipleOfPrice}("");
-            (bool success1, ) = buyer.call{value: price}("");
+            (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}("");
+            (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}("");
             if (!success0) {
                 revert();
             }
             if (!success1) {
                 revert();
             }
+            buyerCollateral = 0;
+            sellerCollateral = 0;
+            tipForBuyer = 0;
+            tipForSeller = 0;
             finalSettlement = true;
+            pending = false;
+           
         } else {
             require(sellerSettled == true, "Seller did not settle");
-            Dsettle(DsettleContractAddress).removeTx(
-                address(this),
-                seller,
-                buyer
+            TxFactory(TxFactoryContractAddress).removeTx(
+                address(this)
             );
-            (bool success0, ) = seller.call{value: price * multipleOfPrice}("");
-            (bool success1, ) = buyer.call{value: price}("");
+            (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}("");
+            (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}("");
             if (!success0) {
                 revert();
             }
@@ -100,6 +117,11 @@ contract Tx {
                 revert();
             }
             finalSettlement = true;
+            pending = false;
+            tipForBuyer = 0;
+            tipForSeller = 0;
+            buyerCollateral = 0;
+            sellerCollateral = 0;
         }
     }
 
@@ -113,9 +135,9 @@ contract Tx {
         require(dispute == true && buyerSettled == true);
         require(_msgSender == seller, "You are not authorized to settle");
 
-        Dsettle(DsettleContractAddress).removeTx(address(this), seller, buyer);
-        (bool success0, ) = seller.call{value: price * multipleOfPrice}("");
-        (bool success1, ) = buyer.call{value: price}("");
+        TxFactory(TxFactoryContractAddress).removeTx(address(this));
+        (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}("");
+        (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}("");
         if (!success0) {
             revert();
         }
@@ -123,6 +145,11 @@ contract Tx {
             revert();
         }
         finalSettlement = true;
+        pending = false;
+        tipForBuyer = 0;
+        tipForSeller = 0;
+        buyerCollateral = 0;
+        sellerCollateral = 0;
     }
 
     function sellerSettle() public {
@@ -133,15 +160,25 @@ contract Tx {
 
     function sellerRefund() public {
         require(msg.sender == seller, "You are not autherized to refund");
-        Dsettle(DsettleContractAddress).removeTx(address(this), seller, buyer);
-        (bool success0, ) = seller.call{value: price}("");
-        (bool success1, ) = buyer.call{value: price * multipleOfPrice}("");
+        TxFactory(TxFactoryContractAddress).removeTx(address(this));
+        (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}("");
+        (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}("");
         if (!success0) {
             revert();
         }
         if (!success1) {
             revert();
         }
+        finalSettlement = true;
+        pending = false;
+        tipForBuyer = 0;
+        tipForSeller = 0;
+        buyerCollateral = 0;
+        sellerCollateral = 0;
+    }
+
+    function getTransactionAddress() public view returns(address) {
+        return address(this);
     }
 
     function getSellerCollateral() public view returns (uint256) {
@@ -166,5 +203,9 @@ contract Tx {
 
     function getPending() public view returns (bool) {
         return pending;
+    }
+
+    function getSellerPhysicalAddress() public view returns (string memory) {
+        return sellerPhysicalAddress;
     }
 }
