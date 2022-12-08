@@ -8,10 +8,10 @@ contract TxFactory {
     address TxContractAddress;
     uint256 id;
 
-    mapping(address => Tx[]) public transactions;
-    Tx[] public transactionsArray;
+    mapping(address => address[]) public transactions;
+    address[] public s_transactionsArray;
 
-    constructor(address _DsettleContractAddress) {
+    constructor() {
         id = 0;
     }
 
@@ -26,33 +26,44 @@ contract TxFactory {
             _item,
             _price,
             _sellerPhysicalAddress,
+            msg.sender,
             id,
             address(this)
         );
     }
 
     function setTransaction(
-        address _transactionAddress
-    ) public view returns (Tx) {
-        transactions[Tx.origin].push(_transactionAddress);
-        transactionsArray.push(_transactionAddress);
+        address _seller,
+        address _txContractAddress
+    ) public {
+        transactions[_seller].push(_txContractAddress);
+        s_transactionsArray.push(_txContractAddress);
     }
 
     function removeTx(address _transactionAddress) public {
-        address[] memory transactions = transactionsArray;
-        for (uint256 i = 0; i < transactions.length; i++) {
-            if (
-                transactions[i].getTransactionAddress() == _transactionAddress
-            ) {
+        address[] memory transactionsArray = s_transactionsArray;
+        for (uint256 i = 0; i < transactionsArray.length; i++) {
+            if (transactionsArray[i] == _transactionAddress) {
                 transactionsArray[i] = transactionsArray[
                     transactionsArray.length - 1
                 ];
-                transactionsArray.pop();
+                s_transactionsArray.pop();
             }
         }
     }
 
     function getId() public view returns (uint256) {
         return id;
+    }
+
+    function getTransaction(
+        uint256 _id
+    ) public view returns (address _transactionAddress) {
+        address[] memory transactionsArray = s_transactionsArray;
+        for (uint256 i = 0; i < transactionsArray.length; i++) {
+            if (Tx(transactionsArray[i]).getId() == _id) {
+                _transactionAddress = s_transactionsArray[i];
+            }
+        }
     }
 }

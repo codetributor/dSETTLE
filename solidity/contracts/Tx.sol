@@ -15,11 +15,11 @@ contract Tx {
 
     uint256 multipleOfPrice = 2;
 
-    uint sellerCollateral;
-    uint buyerCollateral;
+    uint256 sellerCollateral;
+    uint256 buyerCollateral;
 
-    uint tipForSeller;
-    uint tipForBuyer;
+    uint256 tipForSeller;
+    uint256 tipForBuyer;
 
     bool dispute;
     address buyer;
@@ -29,10 +29,13 @@ contract Tx {
     bool pending;
     bool finalSettlement;
 
+    error Transfer__Failed();
+
     constructor(
         string memory _item,
         uint256 _price,
         string memory _sellerPhysicalAddress,
+        address _sellerAddress,
         uint256 _id,
         address _TxFactoryContractAddress
     ) payable {
@@ -42,18 +45,21 @@ contract Tx {
         price = _price;
         sellerPhysicalAddress = _sellerPhysicalAddress;
         id = _id;
+        seller = _sellerAddress;
 
         TxFactoryContractAddress = _TxFactoryContractAddress;
 
         buyer = address(0);
-        seller = Tx.origin;
 
-        sellerCollateral += price;
+        sellerCollateral += _price;
 
-        TxFactory(TxFactoryContractAddress).setTransaction(Tx.origin);
+        TxFactory(TxFactoryContractAddress).setTransaction(
+            seller,
+            address(this)
+        );
     }
 
-    function purchase(string memory _buyerPhysicalAddress, address _TxContractAddress) public payable {
+    function purchase(string memory _buyerPhysicalAddress) public payable {
         require(
             msg.value == price * multipleOfPrice,
             "Not enough memony to purchase"
@@ -61,11 +67,8 @@ contract Tx {
         buyerPhysicalAddress = _buyerPhysicalAddress;
         buyer = msg.sender;
         pending = true;
-        sellerCollateral += msg.value * multipleOfPrice;
-
-        }
- 
- }    
+        sellerCollateral += msg.value;
+    }
 
     function setDispute() public {
         require(msg.sender == buyer, "You are not authorized to dispute");
@@ -85,16 +88,18 @@ contract Tx {
     function payOutbuyer(address _msgSender) public {
         require(_msgSender == buyer, "You are not authorized to settle");
         if (dispute == false) {
-            TxFactory(TxFactoryContractAddress).removeTx(
-                address(this)
-            );
-            (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}("");
-            (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}("");
+            TxFactory(TxFactoryContractAddress).removeTx(address(this));
+            (bool success0, ) = seller.call{
+                value: sellerCollateral + tipForSeller
+            }("");
+            (bool success1, ) = buyer.call{
+                value: buyerCollateral + tipForBuyer
+            }("");
             if (!success0) {
-                revert();
+                revert Transfer__Failed();
             }
             if (!success1) {
-                revert();
+                revert Transfer__Failed();
             }
             buyerCollateral = 0;
             sellerCollateral = 0;
@@ -102,14 +107,15 @@ contract Tx {
             tipForSeller = 0;
             finalSettlement = true;
             pending = false;
-           
         } else {
             require(sellerSettled == true, "Seller did not settle");
-            TxFactory(TxFactoryContractAddress).removeTx(
-                address(this)
-            );
-            (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}("");
-            (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}("");
+            TxFactory(TxFactoryContractAddress).removeTx(address(this));
+            (bool success0, ) = seller.call{
+                value: sellerCollateral + tipForSeller
+            }("");
+            (bool success1, ) = buyer.call{
+                value: buyerCollateral + tipForBuyer
+            }("");
             if (!success0) {
                 revert();
             }
@@ -136,8 +142,12 @@ contract Tx {
         require(_msgSender == seller, "You are not authorized to settle");
 
         TxFactory(TxFactoryContractAddress).removeTx(address(this));
-        (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}("");
-        (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}("");
+        (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}(
+            ""
+        );
+        (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}(
+            ""
+        );
         if (!success0) {
             revert();
         }
@@ -161,8 +171,12 @@ contract Tx {
     function sellerRefund() public {
         require(msg.sender == seller, "You are not autherized to refund");
         TxFactory(TxFactoryContractAddress).removeTx(address(this));
-        (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}("");
-        (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}("");
+        (bool success0, ) = seller.call{value: sellerCollateral + tipForSeller}(
+            ""
+        );
+        (bool success1, ) = buyer.call{value: buyerCollateral + tipForBuyer}(
+            ""
+        );
         if (!success0) {
             revert();
         }
@@ -177,7 +191,7 @@ contract Tx {
         sellerCollateral = 0;
     }
 
-    function getTransactionAddress() public view returns(address) {
+    function getTransactionAddress() public view returns (address) {
         return address(this);
     }
 
@@ -185,7 +199,7 @@ contract Tx {
         return sellerCollateral;
     }
 
-    function getbuyerCollateral() public view returns (uint256) {
+    function getBuyerCollateral() public view returns (uint256) {
         return buyerCollateral;
     }
 
@@ -207,5 +221,9 @@ contract Tx {
 
     function getSellerPhysicalAddress() public view returns (string memory) {
         return sellerPhysicalAddress;
+    }
+
+    function getId() public view returns (uint256) {
+        return id;
     }
 }

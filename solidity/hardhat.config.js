@@ -8,7 +8,7 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY;
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
     defaultNetwork: "hardhat",
-    solidity: "0.8.17",
+    solidity: "0.8.9",
     networks: {
         goerli: {
             url: GOERLI_RPC_URL,
