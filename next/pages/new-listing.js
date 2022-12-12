@@ -20,7 +20,31 @@ export default function NewListing() {
     reader.readAsDataURL(changeEvent.target.files[0]);
   }
 
-  async function handleOnSubmit(event) {}
+  async function handleOnSubmit(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const fileInput = Array.from(form.elements).find(
+      ({ name }) => name == "file"
+    );
+    const formData = new FormData();
+
+    for (const file of fileInput.files) {
+      formData.append("file", file);
+    }
+
+    formData.append("upload_preset", "my-uploads");
+
+    const data = await fetch(
+      "https://api.cloudinary.com/v1_1/duvfr5qnr/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    ).then((r) => r.json());
+
+    setImageSrc(data.secure_url);
+    setUploadData(data);
+  }
 
   return (
     <div>
@@ -32,7 +56,7 @@ export default function NewListing() {
       <Header />
       <div className="flex">
         <Sidebar />
-        <Container className="w-full">
+        <Container className="w-full pb-10">
           <Banner />
           <h3 className="m-5 text-2xl font-extrabold text-gray-400">
             Create a new Listing
@@ -50,7 +74,7 @@ export default function NewListing() {
                 <TextArea placeholder="description" />
               </div>
               <div className="flex flex-col justify-center items-center m-5 w-1/2">
-                <img src={imageSrc} height={150} width={150} />
+                <img src={imageSrc} height={300} width={300} />
                 <p>
                   <input className="mt-5" type="file" name="file" />
                 </p>
