@@ -1,6 +1,12 @@
 import styled from "styled-components";
+import { useRouter } from "next/router";
 
 function Sidebar() {
+  const router = useRouter();
+
+  const sendToNewListing = () => {
+    router.push("new-listing");
+  };
   return (
     <Container className="shadow-md border-gray-200 px-3 border-solid border-r scrollbar-hide bg-white sticky">
       <Header className="flex justify-between items-center py-3 cursor-pointer">
@@ -64,7 +70,10 @@ function Sidebar() {
         <p className="text-blue-400 cursor-pointer">Honolulu, Hawaii</p>
       </div>
       <div className="py-3">
-        <Button className="bg-blue-400 py-2 px-4 rounded-md text-white w-[320px]">
+        <Button
+          onClick={sendToNewListing}
+          className="bg-blue-400 py-2 px-4 rounded-md text-white w-[320px]"
+        >
           Create New Listing
         </Button>
       </div>

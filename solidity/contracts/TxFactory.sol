@@ -18,11 +18,13 @@ contract TxFactory {
     function createTxContract(
         string memory _item,
         uint256 _price,
-        string memory _sellerPhysicalAddress
+        string memory _sellerPhysicalAddress,
+        string memory _ipfsImage
     ) public payable {
         require(msg.value >= _price);
         id += 1;
         (new Tx){value: _price}(
+            _ipfsImage,
             _item,
             _price,
             _sellerPhysicalAddress,
@@ -40,14 +42,36 @@ contract TxFactory {
         s_transactionsArray.push(_txContractAddress);
     }
 
-    function removeTx(address _transactionAddress) public {
+    function removeTx(
+        address _transactionAddress,
+        address _seller,
+        address _buyer
+    ) public {
         address[] memory transactionsArray = s_transactionsArray;
         for (uint256 i = 0; i < transactionsArray.length; i++) {
             if (transactionsArray[i] == _transactionAddress) {
-                transactionsArray[i] = transactionsArray[
+                s_transactionsArray[i] = transactionsArray[
                     transactionsArray.length - 1
                 ];
                 s_transactionsArray.pop();
+            }
+        }
+        address[] memory sellerTransactions = transactions[_seller];
+        for (uint256 i = 0; i < sellerTransactions.length; i++) {
+            if (sellerTransactions[i] == _transactionAddress) {
+                transactions[_seller][i] = sellerTransactions[
+                    sellerTransactions.length - 1
+                ];
+                transactions[_seller].pop();
+            }
+        }
+        address[] memory buyerTransactions = transactions[_buyer];
+        for (uint256 i = 0; i < buyerTransactions.length; i++) {
+            if (buyerTransactions[i] == _transactionAddress) {
+                transactions[_buyer][i] = buyerTransactions[
+                    buyerTransactions.length - 1
+                ];
+                transactions[_buyer].pop();
             }
         }
     }
