@@ -11,6 +11,8 @@ contract TxFactory {
     mapping(address => address[]) public transactions;
     address[] public s_transactionsArray;
 
+    event Created(address _contractAddress);
+
     constructor() {
         id = 0;
     }
@@ -23,7 +25,7 @@ contract TxFactory {
     ) public payable {
         require(msg.value >= _price);
         id += 1;
-        (new Tx){value: _price}(
+        Tx newContract = (new Tx){value: _price}(
             _ipfsImage,
             _item,
             _price,
@@ -32,6 +34,7 @@ contract TxFactory {
             id,
             address(this)
         );
+        emit Created(address(newContract));
     }
 
     function setTransaction(

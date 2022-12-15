@@ -4,10 +4,16 @@ import Banner from "../components/Banner";
 import styled from "styled-components";
 import Head from "next/head";
 import { useState } from "react";
+import { ethers } from "ethers";
+import { abi } from "../abi.js";
 
 export default function NewListing() {
   const [imageSrc, setImageSrc] = useState();
   const [uploadData, setUploadData] = useState();
+  const contractAddress = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
+  const [item, setItem] = useState("");
+  const [price, setPrice] = useState();
+  const [sellerPhysicalAddress, setSellerPhysicalAddress] = useState("");
 
   function handleOnChange(changeEvent) {
     const reader = new FileReader();
@@ -22,6 +28,7 @@ export default function NewListing() {
 
   async function handleOnSubmit(event) {
     event.preventDefault();
+
     const form = event.currentTarget;
     const fileInput = Array.from(form.elements).find(
       ({ name }) => name == "file"
@@ -34,17 +41,41 @@ export default function NewListing() {
 
     formData.append("upload_preset", "my-uploads");
 
-    const data = await fetch(
-      "https://api.cloudinary.com/v1_1/duvfr5qnr/image/upload",
-      {
-        method: "POST",
-        body: formData,
-      }
-    ).then((r) => r.json());
+    if (fileInput) {
+      const data = await fetch(
+        "https://api.cloudinary.com/v1_1/duvfr5qnr/image/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      ).then((r) => r.json());
 
-    setImageSrc(data.secure_url);
-    setUploadData(data);
+      setImageSrc(data.secure_url);
+    }
+
+    const provider = await new ethers.providers.Web3Provider(window.ethereum);
+    let signer;
+    await provider.listAccounts().then(async function (accounts) {
+      signer = await provider.getSigner(accounts[0]);
+    });
+    const contract = await new ethers.Contract(contractAddress, abi, signer);
+    await contract.createTxContract(
+      item,
+      price,
+      sellerPhysicalAddress,
+      imageSrc,
+      { value: price }
+    );
+    checkEvents();
   }
+
+  const checkEvents = () => {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const contract = new ethers.Contract(contractAddress, abi, provider);
+    contract.on("Created", (_contractAddress) => {
+      console.log(_contractAddress);
+    });
+  };
 
   return (
     <div>
@@ -61,22 +92,35 @@ export default function NewListing() {
           <h3 className="m-5 text-2xl font-extrabold text-gray-400">
             Create a new Listing
           </h3>
-          <form
-            method="post"
-            onChange={handleOnChange}
-            onSubmit={handleOnSubmit}
-          >
+          <form method="post" onSubmit={handleOnSubmit}>
             <div className="flex m-5">
               <div className="flex flex-col w-1/2">
-                <Input type="text" placeholder="item name" />
-                <Input type="text" placeholder="price in USD" />
-                <Input type="text" placeholder="seller physical address" />
+                <Input
+                  onChange={(e) => setItem(e.target.value)}
+                  type="text"
+                  placeholder="item name"
+                />
+                <Input
+                  onChange={(e) => setPrice(e.target.value)}
+                  type="text"
+                  placeholder="price in USD"
+                />
+                <Input
+                  onChange={(e) => setSellerPhysicalAddress(e.target.value)}
+                  type="text"
+                  placeholder="seller physical address"
+                />
                 <TextArea placeholder="description" />
               </div>
               <div className="flex flex-col justify-center items-center m-5 w-1/2">
                 <img src={imageSrc} height={300} width={300} />
                 <p>
-                  <input className="mt-5" type="file" name="file" />
+                  <input
+                    onChange={handleOnChange}
+                    className="mt-5"
+                    type="file"
+                    name="file"
+                  />
                 </p>
               </div>
             </div>

@@ -11,6 +11,7 @@ import Banner from "../components/Banner";
 
 export default function Home() {
   const [items, setItems] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const router = useRouter();
 
   useEffect(() => {
