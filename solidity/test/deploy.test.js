@@ -19,6 +19,7 @@ async function main() {
                         "shoes",
                         "1000000000000000000",
                         "Honolulu",
+                        "https://res.cloudinary.com/duvfr5qnr/image/upload/v1670879119/my-uploads/g77wxb6ttecothrf6fo9.png",
                         {
                             value: ethers.utils.parseEther("1"),
                         }
@@ -33,6 +34,7 @@ async function main() {
                         "hat",
                         "1000000000000000000",
                         "New York",
+                        "https://res.cloudinary.com/duvfr5qnr/image/upload/v1670879119/my-uploads/g77wxb6ttecothrf6fo9.png",
                         {
                             value: ethers.utils.parseEther("1"),
                         }
@@ -43,9 +45,15 @@ async function main() {
                 );
                 await dSettle
                     .connect(accounts[3])
-                    .createTxContract("boba", "1000000000000000000", "Spain", {
-                        value: ethers.utils.parseEther("1"),
-                    });
+                    .createTxContract(
+                        "boba",
+                        "1000000000000000000",
+                        "Spain",
+                        "https://res.cloudinary.com/duvfr5qnr/image/upload/v1670879119/my-uploads/g77wxb6ttecothrf6fo9.png",
+                        {
+                            value: ethers.utils.parseEther("1"),
+                        }
+                    );
                 Tx3 = await ethers.getContractAt(
                     "Tx",
                     await dSettle.getTransaction(3)
@@ -92,7 +100,8 @@ async function main() {
                         endingSellerCollateral,
                         fees,
                         finalSettlement,
-                        pending;
+                        pending,
+                        cost;
                     beforeEach(async () => {
                         const accounts = await ethers.getSigners();
                         sellerCollateral = await Tx1.connect(
@@ -102,6 +111,8 @@ async function main() {
                         buyerCollateral = await Tx1.connect(
                             accounts[4]
                         ).getBuyerCollateral();
+
+                        cost = await Tx1.connect(accounts[1]).getCost();
 
                         person1 = await accounts[1].getBalance();
                         person4 = await accounts[4].getBalance();
@@ -141,11 +152,13 @@ async function main() {
                     it("confirm collateral of buyer", async () => {
                         assert.equal(
                             buyerCollateral.toString(),
-                            ethers.utils.parseEther("2")
+                            ethers.utils.parseEther("1")
                         );
                     });
                     it("confirm seller payout", async () => {
-                        const settleBalance1 = person1.add(sellerCollateral);
+                        const settleBalance1 = person1
+                            .add(sellerCollateral)
+                            .add(cost);
                         assert.equal(
                             endingPerson1.toString(),
                             settleBalance1.toString()
@@ -227,12 +240,14 @@ async function main() {
                                 buyerCollateral1,
                                 endingTipForBuyer1,
                                 buyerSettled,
-                                sellerSettled;
+                                sellerSettled,
+                                cost;
                             beforeEach(async () => {
                                 let accounts = await ethers.getSigners();
                                 endingTipForBuyer1 = await Tx1.getTipForBuyer();
                                 sellerCollateral1 =
                                     await Tx1.getSellerCollateral();
+                                cost = await Tx1.connect(accounts[1]).getCost();
                                 beforeBalancePerson1 =
                                     await accounts[1].getBalance();
                                 transactionResponse4 = await Tx1.connect(
@@ -273,6 +288,7 @@ async function main() {
                                         .toString(),
                                     beforeBalancePerson1
                                         .add(sellerCollateral1)
+                                        .add(cost)
                                         .toString()
                                 );
                             });
@@ -300,11 +316,13 @@ async function main() {
                         endingBalancePerson1,
                         endingBalancePerson4,
                         buyerCollateral,
-                        sellerCollateral;
+                        sellerCollateral,
+                        cost;
                     beforeEach(async () => {
                         const accounts = await ethers.getSigners();
                         sellerCollateral = await Tx1.getSellerCollateral();
                         buyerCollateral = await Tx2.getBuyerCollateral();
+                        cost = await Tx1.connect(accounts[1]).getCost();
                         beforeBalancePerson1 = await accounts[1].getBalance();
                         beforeBalancePerson4 = await accounts[4].getBalance();
                         transactionResponse = await Tx1.connect(
@@ -328,6 +346,7 @@ async function main() {
                             endingBalancePerson1.add(fees).toString(),
                             beforeBalancePerson1
                                 .add(sellerCollateral)
+                                .add(cost)
                                 .toString()
                         );
                     });

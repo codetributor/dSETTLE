@@ -14,5 +14,8 @@ module.exports = {
             url: GOERLI_RPC_URL,
             accountns: [PRIVATE_KEY],
         },
+        hardhat: {
+            allowUnlimitedContractSize: true,
+        },
     },
 };

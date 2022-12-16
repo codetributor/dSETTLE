@@ -21,6 +21,7 @@ contract Tx {
 
     uint256 sellerCollateral;
     uint256 buyerCollateral;
+    uint256 cost;
 
     uint256 tipForSeller;
     uint256 tipForBuyer;
@@ -73,7 +74,8 @@ contract Tx {
         buyerPhysicalAddress = _buyerPhysicalAddress;
         buyer = msg.sender;
         pending = true;
-        buyerCollateral = msg.value;
+        buyerCollateral = price;
+        cost = price;
     }
 
     function setDispute() public {
@@ -100,7 +102,7 @@ contract Tx {
                 buyer
             );
             (bool success0, ) = seller.call{
-                value: sellerCollateral.add(tipForSeller)
+                value: sellerCollateral.add(tipForSeller).add(cost)
             }("");
             (bool success1, ) = buyer.call{
                 value: buyerCollateral.add(tipForBuyer)
@@ -125,7 +127,7 @@ contract Tx {
                     buyer
                 );
                 (bool success0, ) = seller.call{
-                    value: sellerCollateral.add(tipForSeller)
+                    value: sellerCollateral.add(tipForSeller).add(cost)
                 }("");
                 (bool success1, ) = buyer.call{
                     value: buyerCollateral.add(tipForBuyer)
@@ -161,7 +163,7 @@ contract Tx {
                 buyer
             );
             (bool success0, ) = seller.call{
-                value: sellerCollateral.add(tipForSeller)
+                value: sellerCollateral.add(tipForSeller).add(cost)
             }("");
             (bool success1, ) = buyer.call{
                 value: buyerCollateral.add(tipForBuyer)
@@ -195,7 +197,7 @@ contract Tx {
             buyer
         );
         (bool success0, ) = seller.call{
-            value: sellerCollateral.add(tipForSeller)
+            value: sellerCollateral.add(tipForSeller).add(cost)
         }("");
         (bool success1, ) = buyer.call{value: buyerCollateral.add(tipForBuyer)}(
             ""
@@ -276,5 +278,9 @@ contract Tx {
 
     function getBuyerSettled() public view returns (bool) {
         return buyerSettled;
+    }
+
+    function getCost() public view returns (uint256) {
+        return cost;
     }
 }

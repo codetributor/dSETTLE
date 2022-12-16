@@ -8,7 +8,7 @@ function Sidebar() {
     router.push("new-listing");
   };
   return (
-    <Container className="shadow-md border-gray-200 px-3 border-solid border-r scrollbar-hide bg-white sticky">
+    <Container className="border-gray-200 px-3 border-solid border-r scrollbar-hide bg-white h-full">
       <Header className="flex justify-between items-center py-3 cursor-pointer">
         <div className="flex items-center">
           <svg

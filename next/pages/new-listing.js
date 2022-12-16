@@ -6,14 +6,18 @@ import Head from "next/head";
 import { useState } from "react";
 import { ethers } from "ethers";
 import { abi } from "../abi.js";
+import { useRouter } from "next/router";
 
 export default function NewListing() {
   const [imageSrc, setImageSrc] = useState();
   const [uploadData, setUploadData] = useState();
-  const contractAddress = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
+  const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+  const [txContractAddress, setTxContractAddress] = useState();
   const [item, setItem] = useState("");
   const [price, setPrice] = useState();
   const [sellerPhysicalAddress, setSellerPhysicalAddress] = useState("");
+
+  const router = useRouter();
 
   function handleOnChange(changeEvent) {
     const reader = new FileReader();
@@ -66,15 +70,21 @@ export default function NewListing() {
       imageSrc,
       { value: price }
     );
-    checkEvents();
+    await checkEvents();
+    await txContractAddress;
+    pushToAccountPage();
   }
 
-  const checkEvents = () => {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const contract = new ethers.Contract(contractAddress, abi, provider);
-    contract.on("Created", (_contractAddress) => {
-      console.log(_contractAddress);
+  const checkEvents = async () => {
+    const provider = await new ethers.providers.Web3Provider(window.ethereum);
+    const contract = await new ethers.Contract(contractAddress, abi, provider);
+    await contract.on("Created", (_contractAddress) => {
+      setTxContractAddress(_contractAddress);
     });
+  };
+
+  const pushToAccountPage = () => {
+    router.push(`/contracts/${txContractAddress}`);
   };
 
   return (
