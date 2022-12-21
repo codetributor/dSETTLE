@@ -71,8 +71,6 @@ export default function NewListing() {
       { value: price }
     );
     await checkEvents();
-    await txContractAddress;
-    pushToAccountPage();
   }
 
   const checkEvents = async () => {
@@ -80,11 +78,8 @@ export default function NewListing() {
     const contract = await new ethers.Contract(contractAddress, abi, provider);
     await contract.on("Created", (_contractAddress) => {
       setTxContractAddress(_contractAddress);
+      router.push(`/contracts/${_contractAddress}`);
     });
-  };
-
-  const pushToAccountPage = () => {
-    router.push(`/contracts/${txContractAddress}`);
   };
 
   return (

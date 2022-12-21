@@ -21,7 +21,7 @@ contract Tx {
 
     uint256 sellerCollateral;
     uint256 buyerCollateral;
-    uint256 cost;
+    uint256 costCollateral;
 
     uint256 tipForSeller;
     uint256 tipForBuyer;
@@ -35,6 +35,14 @@ contract Tx {
     bool finalSettlement;
 
     error Transfer__Failed();
+
+    event e_ImageUrl(string _imgUrl);
+    event e_ItemName(string _itemName);
+    event e_Price(uint256 _price);
+    event e_SellerPhysicalAddress(string _sellerPhysicalAddress);
+    event e_SellerAddress(address _sellerAddress);
+    event e_BuyerAddress(address _buyerAddress);
+    event e_SellerCollateral(uint256 _sellerCollateral);
 
     constructor(
         string memory _ipfsImage,
@@ -51,14 +59,16 @@ contract Tx {
         price = _price;
         sellerPhysicalAddress = _sellerPhysicalAddress;
         id = _id;
+
         seller = _sellerAddress;
+        buyer = address(0);
+
         ipfsImage = _ipfsImage;
 
         TxFactoryContractAddress = _TxFactoryContractAddress;
 
-        buyer = address(0);
-
         sellerCollateral += _price;
+        emit e_SellerCollateral(sellerCollateral);
 
         TxFactory(TxFactoryContractAddress).setTransaction(
             seller,
@@ -75,7 +85,7 @@ contract Tx {
         buyer = msg.sender;
         pending = true;
         buyerCollateral = price;
-        cost = price;
+        costCollateral = price;
     }
 
     function setDispute() public {
@@ -102,7 +112,7 @@ contract Tx {
                 buyer
             );
             (bool success0, ) = seller.call{
-                value: sellerCollateral.add(tipForSeller).add(cost)
+                value: sellerCollateral.add(tipForSeller).add(costCollateral)
             }("");
             (bool success1, ) = buyer.call{
                 value: buyerCollateral.add(tipForBuyer)
@@ -127,7 +137,9 @@ contract Tx {
                     buyer
                 );
                 (bool success0, ) = seller.call{
-                    value: sellerCollateral.add(tipForSeller).add(cost)
+                    value: sellerCollateral.add(tipForSeller).add(
+                        costCollateral
+                    )
                 }("");
                 (bool success1, ) = buyer.call{
                     value: buyerCollateral.add(tipForBuyer)
@@ -163,7 +175,7 @@ contract Tx {
                 buyer
             );
             (bool success0, ) = seller.call{
-                value: sellerCollateral.add(tipForSeller).add(cost)
+                value: sellerCollateral.add(tipForSeller).add(costCollateral)
             }("");
             (bool success1, ) = buyer.call{
                 value: buyerCollateral.add(tipForBuyer)
@@ -197,7 +209,7 @@ contract Tx {
             buyer
         );
         (bool success0, ) = seller.call{
-            value: sellerCollateral.add(tipForSeller).add(cost)
+            value: sellerCollateral.add(tipForSeller).add(costCollateral)
         }("");
         (bool success1, ) = buyer.call{value: buyerCollateral.add(tipForBuyer)}(
             ""
@@ -216,6 +228,18 @@ contract Tx {
         sellerCollateral = 0;
     }
 
+    //Getter functions
+
+    function getSellerAddress() public returns (address) {
+        emit e_SellerAddress(seller);
+        return seller;
+    }
+
+    function getBuyerAddress() public returns (address) {
+        emit e_BuyerAddress(buyer);
+        return buyer;
+    }
+
     function getTransactionAddress() public view returns (address) {
         return address(this);
     }
@@ -228,23 +252,18 @@ contract Tx {
         return buyerCollateral;
     }
 
-    function getPrice() public view returns (uint256) {
-        return price;
-    }
-
-    function getItem() public view returns (string memory) {
+    function getItem() public returns (string memory) {
+        emit e_ItemName(item);
         return item;
     }
 
-    function getTotalContractBalance() public view returns (uint256) {
-        return address(this).balance;
+    function getPrice() public returns (uint256) {
+        emit e_Price(price);
+        return price;
     }
 
-    function getPending() public view returns (bool) {
-        return pending;
-    }
-
-    function getSellerPhysicalAddress() public view returns (string memory) {
+    function getSellerPhysicalAddress() public returns (string memory) {
+        emit e_SellerPhysicalAddress(sellerPhysicalAddress);
         return sellerPhysicalAddress;
     }
 
@@ -254,6 +273,14 @@ contract Tx {
 
     function getId() public view returns (uint256) {
         return id;
+    }
+
+    function getTotalContractBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function getPending() public view returns (bool) {
+        return pending;
     }
 
     function getFinalSettlement() public view returns (bool) {
@@ -281,6 +308,11 @@ contract Tx {
     }
 
     function getCost() public view returns (uint256) {
-        return cost;
+        return costCollateral;
+    }
+
+    function getIpfsImage() public returns (string memory) {
+        emit e_ImageUrl(ipfsImage);
+        return ipfsImage;
     }
 }
